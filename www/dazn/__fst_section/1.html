@@ -1,0 +1,13 @@
+<div style="text-align: justify">
+    <h4 style="font-weight: bold;">TCP Flows</h4>
+    <p> TCP flow reconstruction is available in both <code>complete</code> and <code>periodic</code> formats. In the
+        first case, each flow is graphically represented through a time segment within the interval
+        <code>[ts; te]</code>. Each flow begins at the moment when Tstat intercepts the TCP segment with
+        <code>SYN = 1</code> and ends at the moment when Tstat intercepts the segment with <code>FIN = 1</code> or
+        <code>RST = 1</code>. Each flow includes both volumetric metrics (the amount of bytes and packets sent from the
+        client to the server and vice versa) and temporal metrics (average RTT). In the second case, each flow consists
+        of a sequence of disjoint time intervals; each interval represents a portion of the communication between the
+        client and the server, while the gaps represent silences that occurred between the two machines. Each interval
+        contains the same metrics found in the corresponding <code>complete</code> document, relevant to the time window
+        under consideration. </p>
+</div>
