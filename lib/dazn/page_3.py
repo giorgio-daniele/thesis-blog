@@ -1,29 +1,6 @@
-# import os
-# import pandas
-# import numpy
-# import streamlit
-# import concurrent.futures
-
-# from lib.generic import TESTBED_RATES
-# from lib.generic import LIMIT
-# from lib.generic import Protocol
-# from lib.generic import __plot_scatter
-# from lib.generic import __plot_trend
-# from lib.generic import __cumulative_function
-# from lib.generic import __signal_to_noise
-
-
 import os
 import pandas
 import streamlit
-
-
-from lib.generic import LOG_BOT_COMPLETE
-from lib.generic import LOG_HAR_COMPLETE
-from lib.generic import LOG_TCP_COMPLETE
-from lib.generic import LOG_UDP_COMPLETE
-from lib.generic import LOG_TCP_PERIODIC
-from lib.generic import LOG_UDP_PERIODIC
 
 from lib.generic import plot_trend
 from lib.generic import plot_scatter
@@ -43,30 +20,24 @@ def load_tcp(step: str):
     for rate in TESTBED_RATES:
         dir = os.path.join(SERVER, rate, "samples", "tcp", str(step))
         
-        # print("*********************")
-        # print("*********************")
-        # print(dir)
-
         # Generate a unique frame with all measurements
         # for a specific rate
         frame = pandas.concat(
             [pandas.read_csv(os.path.join(dir, file), sep=" ") 
-                for file in os.listdir(dir)][:20], ignore_index=True)
+                for file in os.listdir(dir)][:LIMIT], ignore_index=True)
 
         # Convert millis timestamps to seconds
         frame["ts"] = frame["ts"] / 1000
         frame["te"] = frame["te"] / 1000  
 
-        # Define statistics to be computed at each interval [ts; te]. 
-        # Some of these metrics are already in form of mean, so they 
-        # will be further average
+        # Define statistics to be computed at each interval [ts; te]
         stats = {
             "agg_avg_video_rate":    ("avg_video_rate", lambda x: x[x != 0].mean()),
             "agg_avg_c_bytes_all":   ("c_bytes_all",  "mean"),
             "agg_avg_s_ack_cnt":     ("s_ack_cnt",    "mean"),
             "agg_avg_c_ack_cnt":     ("c_ack_cnt",    "mean"),
-            "agg_avg_s_ack_cnt_p":     ("s_ack_cnt_p",    "mean"),
-            "agg_avg_c_ack_cnt_p":     ("c_ack_cnt_p",    "mean"),
+            "agg_avg_s_ack_cnt_p":   ("s_ack_cnt_p",  "mean"),
+            "agg_avg_c_ack_cnt_p":   ("c_ack_cnt_p",  "mean"),
             "agg_avg_s_bytes_all":   ("s_bytes_all",  "mean"),
             "agg_avg_avg_span":      ("avg_span", "mean"),
             "agg_avg_max_span":      ("max_span", "mean"),
@@ -93,9 +64,6 @@ def load_udp(step: str):
     for rate in TESTBED_RATES:
         dir = os.path.join(SERVER, rate, "samples", "udp", str(step))
         
-        #print("*********************")
-        #print(f"Processing rate: {rate}")
-        #print(f"Directory: {dir}")
         
         # Check if directory exists
         if not os.path.exists(dir):
@@ -103,14 +71,12 @@ def load_udp(step: str):
             continue
         
         files = os.listdir(dir)
-        #print(f"Files in directory ({len(files)}): {files}")
-
+        
         # Generate a unique frame with all measurements
         # for a specific rate
         frame = pandas.concat(
             [pandas.read_csv(os.path.join(dir, file), sep=" ") 
-                for file in files][:20], ignore_index=True)
-        #print("Dataframe shape after concatenation:", frame.shape)
+                for file in files][:LIMIT], ignore_index=True)
 
         # Convert millis timestamps to seconds
         frame["ts"] = frame["ts"] / 1000
@@ -258,6 +224,13 @@ def plot_protocol(media: pandas.DataFrame, proto: Protocol, step: float):
         ytitle = "rate [kbits]"
         ctitle = f"Relationship among server bytes and average video rate at {step / 1000} seconds"
         plot_scatter(x=x, y=y, xtitle=xtitle, ytitle=ytitle, ctitle=ctitle, media=media, noise=None)
+        
+        x = "agg_avg_c_bytes_all"
+        y = "agg_avg_video_rate"
+        xtitle = "bytes [B]"
+        ytitle = "rate [kbits]"
+        ctitle = f"Relationship among client bytes and average video rate at {step / 1000} seconds"
+        plot_scatter(x=x, y=y, xtitle=xtitle, ytitle=ytitle, ctitle=ctitle, media=media, noise=None)
 
     with col2:
         x = "agg_avg_avg_span"
@@ -265,6 +238,14 @@ def plot_protocol(media: pandas.DataFrame, proto: Protocol, step: float):
         xtitle = "time [ms]"
         ytitle = "rate [kbits]"
         ctitle = f"Relationship among average bin span and average video rate at {step / 1000} seconds"
+        plot_scatter(x=x, y=y, xtitle=xtitle, ytitle=ytitle, ctitle=ctitle, media=media, noise=None)
+        
+
+        x = "agg_avg_std_span"
+        y = "agg_avg_video_rate"
+        xtitle = "time [ms]"
+        ytitle = "rate [kbits]"
+        ctitle = f"Relationship among standard bin span and average video rate at {step / 1000} seconds"
         plot_scatter(x=x, y=y, xtitle=xtitle, ytitle=ytitle, ctitle=ctitle, media=media, noise=None)
 
 
@@ -274,7 +255,7 @@ def plot_protocol(media: pandas.DataFrame, proto: Protocol, step: float):
 #############################
 
 def main():
-    streamlit.html(os.path.join("www", SERVER, "__trd_section", "0.html"))
+    streamlit.html(os.path.join("www", SERVER, "section_3", "0.html"))
 
     # Let the user choose the step to be used
     step = streamlit.select_slider("Select step value", 
@@ -300,32 +281,3 @@ def main():
     streamlit.markdown("### UDP")
     samples = load_udp(step=step)
     plot_protocol(media=samples, proto=Protocol.UDP, step=step)
-
-
-
-# ##########################################################################
-# ##########################################################################
-# #                                                                        #
-# #                               MAIN                                     #
-# #                                                                        #
-# ##########################################################################
-# ##########################################################################
-
-# def __main():
-
-#     steps = [i * 1000 for i in range(1, 11)]
-
-#     # Create a slider with specific values
-#     step = streamlit.select_slider("Select step value", options=steps, value=2000, format_func=lambda x: f"{x}")
-
-#     tcp_media_samples = load_samples(step=str(step), mode="media", protocol=Protocol.TCP)
-
-#     # Load and plot samples for TCP protocol
-#     plot_protocol(protocol=Protocol.TCP, media_samples=tcp_media_samples, noise_samples=None)
-
-#     streamlit.caption("---")
-
-#     # Load and plot samples for UDP protocol
-#     udp_media_samples = load_samples(step=str(step), mode="media", protocol=Protocol.UDP)
-
-#     plot_protocol(protocol=Protocol.UDP, media_samples=udp_media_samples, noise_samples=None)

@@ -8,7 +8,7 @@ import numpy
 
 TEMPLATE = None
 OPACITY  = 1.0
-LIMIT    = 30
+LIMIT    = 20
 
 # enum for different log document types
 class Document(enum.Enum):

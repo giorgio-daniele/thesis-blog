@@ -127,7 +127,7 @@ def http(dir: str):
 #############################
 
 def main():
-    streamlit.html(os.path.join("www", SERVER, "__fst_section", "0.html"))
+    streamlit.html(os.path.join("www", SERVER, "section_1", "0.html"))
 
     col1, col2 = streamlit.columns(2)
 

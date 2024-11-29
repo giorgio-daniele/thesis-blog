@@ -1,0 +1,32 @@
+<div style="text-align: justify">
+    <h2 style="font-weight: bold;">Supervised Experiments</h2>
+    <p>
+        The <strong>supervised experiment</strong> is defined as the <em>systematic</em>,
+        <em>repeatable</em>, and <em>computerized</em> visualization of one or more events streamed in real-time on
+        the DAZN platform. This experiment serves as a fundamental analytical tool for the detailed reconstruction
+        of the metrics that characterize each viewing session; in other words, it is an effective means of
+        monitoring the network traffic generated during the viewing period and evaluating the quality of the event
+        streamed on the user's device.
+    </p>
+    <p>
+        To meet the above requirements, a tool named <strong>Streambot</strong> has been developed. This is a
+        command-line application that manages the lifecycle of a web browser and a network analyzer, recording
+        network interactions in a HAR (HTTP Archive) file. The primary objective of Streambot is to automate
+        browsing operations within the web application, simulating the behavior of a real user. In particular,
+        Streambot is designed to start and stop the playback of a DAZN event, generating as output three types of
+        documents: a <code>.pcap</code> file that contains the recording of all the network packets intercepted
+        during the experiment, a <code>.har</code> file that collects the archive of HTTP requests and responses,
+        and a <code>.csv</code> file that documents the timeline of the automated actions performed.
+    </p>
+    <p>
+        This page is designed to display all TCP and UDP flows that occurred during supervised experiments. For each
+        tested
+        bandwidth, multiple tests are available for selection. Once a test is selected, users can appreciate the flows
+        that
+        have occurred based on the CNAME, both at the TCP and UDP layers. Additionally, the page provides a
+        reconstruction
+        of the HTTP video streaming session, detailing the sequence of video and audio requests, as well as the index,
+        particularly for DASH (Dynamic Adaptive Streaming over HTTP), which includes the Media Presentation Description
+        (MPD).
+    </p>
+</div>

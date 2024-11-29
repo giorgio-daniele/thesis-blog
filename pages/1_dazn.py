@@ -1,9 +1,9 @@
 import os
 import streamlit
 
-from lib.dazn import fst_section
-from lib.dazn import snd_section
-from lib.dazn import trd_section
+from lib.dazn import page_1
+from lib.dazn import page_2
+from lib.dazn import page_3
 
 SERVER = "dazn"
 
@@ -11,9 +11,9 @@ def main():
 
         
     INTRO = "Introduction"
-    FLOWS = "Recostructed Flows"
-    PROFS = "DAZN Servers Profiling"
-    SAMPL = "Measurements"
+    FLOWS = "Supervised Experiments"
+    PROFS = "Server Profiling"
+    SAMPL = "HAS Flows Metrics"
 
     # config page
     streamlit.set_page_config(layout="wide")
@@ -25,11 +25,11 @@ def main():
     if page == INTRO:
         pass
     if page == FLOWS:
-        fst_section.main()
+        page_1.main()
     if page == PROFS:
         pass
     if page == SAMPL:
-        trd_section.main()
+        page_3.main()
 
 main()
 
