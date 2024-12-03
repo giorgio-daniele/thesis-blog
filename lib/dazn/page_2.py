@@ -84,7 +84,7 @@ def display_styled_dataframe(frame: pandas.DataFrame) -> None:
 
 def __main():
 
-    streamlit.html(os.path.join("www", SERVER, "__snd_section", "0.html"))
+    # streamlit.html(os.path.join("www", SERVER, "__snd_section", "0.html"))
 
     TCP_CNAMES = "meta/dazn/cnames_over_tcp"
     UDP_CNAMES = "meta/dazn/cnames_over_udp"

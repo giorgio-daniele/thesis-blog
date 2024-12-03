@@ -1,6 +1,6 @@
 import os
-import pandas
-import streamlit
+import pandas    as pd
+import streamlit as st
 
 
 from lib.generic import LOG_BOT_COMPLETE
@@ -13,9 +13,8 @@ from lib.generic import LOG_UDP_PERIODIC
 from lib.generic import tcp_info
 from lib.generic import udp_info
 from lib.generic import http_info
-from lib.generic import timeline
+from lib.generic import plot_timeline
 from lib.generic import periods
-
 from lib.generic import LIMIT
 
 
@@ -25,50 +24,48 @@ SERVER = "dazn"
 def get_number(name: str):
     return int(name.split("-")[1]) if "-" in name else 0
 
-
 def tcp(dir: str):
-    streamlit.markdown("### TCP")
+    st.markdown("### TCP")
 
     # Load data
-    tcom = pandas.read_csv(os.path.join(dir, LOG_TCP_COMPLETE), sep=" ")
-    tper = pandas.read_csv(os.path.join(dir, LOG_TCP_PERIODIC), sep=" ")
+    tcom = pd.read_csv(os.path.join(dir, LOG_TCP_COMPLETE), sep=" ")
+    tper = pd.read_csv(os.path.join(dir, LOG_TCP_PERIODIC), sep=" ")
     evns = periods(os.path.join(dir, LOG_BOT_COMPLETE))
 
     # Define x and y values
     xs, xe = "xs", "xe"
 
     # Convert timestamps to datetime
-    tcom[xs] = pandas.to_datetime(tcom["ts"], unit="ms", origin="unix")
-    tcom[xe] = pandas.to_datetime(tcom["te"], unit="ms", origin="unix")
-    tper[xs] = pandas.to_datetime(tper["ts"], unit="ms", origin="unix")
-    tper[xe] = pandas.to_datetime(tper["te"], unit="ms", origin="unix")
+    tcom[xs] = pd.to_datetime(tcom["ts"], unit="ms", origin="unix")
+    tcom[xe] = pd.to_datetime(tcom["te"], unit="ms", origin="unix")
+    tper[xs] = pd.to_datetime(tper["ts"], unit="ms", origin="unix")
+    tper[xe] = pd.to_datetime(tper["te"], unit="ms", origin="unix")
 
     # Add info
     tcom["info"] = tcom.apply(tcp_info, axis=1)
     tper["info"] = tper.apply(tcp_info, axis=1)
 
     # Canonical Names selection
-    cns = streamlit.multiselect("Select Canonical Names over TCP", sorted(set(tcom["cn"])))
+    cnames = st.multiselect("Select Canonical Names over TCP", sorted(set(tcom["cn"])))
 
     # Filter data based on selected Canonical Names
-    com_cns = tcom[tcom["cn"].isin(cns)]
-    per_cns = tper[tper["cn"].isin(cns)]
+    com_cns = tcom[tcom["cn"].isin(cnames)]
+    per_cns = tper[tper["cn"].isin(cnames)]
 
-    # Display timelines if Canonical Names are selected
-    if cns:
-        for data, title in [(com_cns, "log TCP complete"), (per_cns, "log TCP periodic")]:
-            timeline(data=data, 
-                     evns=evns, xs=xs, xe=xe, y="id", color="cn", xtitle="time [mm:ss]", ytitle="id [#]",  ctitle=title)
+    if cnames:
+        for data, title in [(com_cns, "log_tcp_complete"), (per_cns, "log_tcp_periodic")]:
+            plot_timeline(data=data, 
+                     evns=evns, xs=xs, xe=xe, y="id", color="cn", xaxis_title="time [mm:ss]", yaxis_title="id [#]",  chart_title=title)
     else:
-        streamlit.warning("Nothing to see here")
+        st.warning("Nothing to see here")
     return
 
 def udp(dir: str):
-    streamlit.markdown("### UDP")
+    st.markdown("### UDP")
 
     # Load data
-    ucom = pandas.read_csv(os.path.join(dir, LOG_UDP_COMPLETE), sep=" ")
-    uper = pandas.read_csv(os.path.join(dir, LOG_UDP_PERIODIC), sep=" ")
+    ucom = pd.read_csv(os.path.join(dir, LOG_UDP_COMPLETE), sep=" ")
+    uper = pd.read_csv(os.path.join(dir, LOG_UDP_PERIODIC), sep=" ")
     evns = periods(os.path.join(dir, LOG_BOT_COMPLETE))
 
     # Define x and y values
@@ -76,68 +73,71 @@ def udp(dir: str):
     id, cl = "id", "cn"
 
     # Convert timestamps to datetime
-    ucom[xs] = pandas.to_datetime(ucom["ts"], unit="ms", origin="unix")
-    ucom[xe] = pandas.to_datetime(ucom["te"], unit="ms", origin="unix")
-    uper[xs] = pandas.to_datetime(uper["ts"], unit="ms", origin="unix")
-    uper[xe] = pandas.to_datetime(uper["te"], unit="ms", origin="unix")
+    ucom[xs] = pd.to_datetime(ucom["ts"], unit="ms", origin="unix")
+    ucom[xe] = pd.to_datetime(ucom["te"], unit="ms", origin="unix")
+    uper[xs] = pd.to_datetime(uper["ts"], unit="ms", origin="unix")
+    uper[xe] = pd.to_datetime(uper["te"], unit="ms", origin="unix")
 
     # Add info
     ucom["info"] = ucom.apply(udp_info, axis=1)
     uper["info"] = uper.apply(udp_info, axis=1)
 
     # Canonical Names selection
-    cns = streamlit.multiselect("Select Canonical Names over UDP", sorted(set(ucom["cn"])))
+    cnames = st.multiselect("Select Canonical Names over UDP", sorted(set(ucom["cn"])))
 
     # Filter data based on selected Canonical Names
-    com_cns = ucom[ucom["cn"].isin(cns)]
-    per_cns = uper[uper["cn"].isin(cns)]
+    com_cns = ucom[ucom["cn"].isin(cnames)]
+    per_cns = uper[uper["cn"].isin(cnames)]
 
     # Display timelines if Canonical Names are selected
-    if cns:
-        for data, title in [(com_cns, "log UDP complete"), (per_cns, "log UDP periodic")]:
-            timeline(data=data, 
-                     evns=evns, xs=xs, xe=xe, y=id, color=cl, xtitle="time [mm:ss]", ytitle="id [#]",  ctitle=title)
+    if cnames:
+        for data, title in [(com_cns, "log_udp_complete"), (per_cns, "log_udp_periodic")]:
+            plot_timeline(data=data, 
+                          evns=evns, xs=xs, xe=xe, y=id, color=cl, 
+                          xaxis_title="time [mm:ss]", 
+                          yaxis_title="id [#]",  
+                          chart_title=title)
     else:
-        streamlit.warning("Nothing to see here")
+        st.warning("Nothing to see here")
     return
 
 def http(dir: str):
-    streamlit.markdown("### HTTP")
+    st.markdown("### HTTP")
 
     # Load data
-    http = pandas.read_csv(os.path.join(dir, LOG_HAR_COMPLETE), sep=" ")
+    http = pd.read_csv(os.path.join(dir, LOG_HAR_COMPLETE), sep=" ")
     evns = periods(os.path.join(dir, LOG_BOT_COMPLETE))
 
     # Define x and y values
-    xs, xe = "xs", "xe"
+    xs, xe = "xs",   "xe"
     id, cl = "mime", "mime"
 
     # Convert timestamps to datetime
-    http[xs] = pandas.to_datetime(http["ts"], unit="ms", origin="unix")
-    http[xe] = pandas.to_datetime(http["te"], unit="ms", origin="unix")
+    http[xs] = pd.to_datetime(http["ts"], unit="ms", origin="unix")
+    http[xe] = pd.to_datetime(http["te"], unit="ms", origin="unix")
 
     # Add info
     http["info"] = http.apply(http_info, axis=1)
 
-    timeline(data=http, 
-             evns=evns, xs=xs, xe=xe, y=id, color=cl, xtitle="time [mm:ss]", ytitle="mime [*]",  ctitle="log HAR complete")
-
-#############################
-#           MAIN            #
-#############################
+    plot_timeline(data=http, 
+                  evns=evns, xs=xs, xe=xe, y=id, color=cl, 
+                  xaxis_title="time [mm:ss]",
+                  yaxis_title="mime [*]",  
+                  chart_title="log_har_complete")
 
 def main():
-    streamlit.html(os.path.join("www", SERVER, "section_1", "0.html"))
-
-    col1, col2 = streamlit.columns(2)
+    
+    st.title("Supervised Experiments")
+    
+    col1, col2 = st.columns(2)
 
     with col1:
-        qos = streamlit.selectbox("Choose testbed bandwidth", os.listdir(SERVER))
+        qos = st.selectbox("Choose testbed bandwidth", os.listdir(SERVER))
 
     with col2:
         path = os.path.join(SERVER, qos, "tests")
         opts = sorted([opt for opt in os.listdir(path)], key=get_number)
-        test = streamlit.selectbox("Choose supervised experiment", options=opts[:LIMIT])
+        test = st.selectbox("Choose supervised experiment", options=opts[:LIMIT])
 
     """
     =============================

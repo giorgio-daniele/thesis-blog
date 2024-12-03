@@ -1,6 +1,7 @@
 import enum
 import pandas
 import streamlit
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy
@@ -33,30 +34,17 @@ LOG_UDP_PERIODIC = "log_udp_periodic"
 LOG_BOT_COMPLETE = "log_bot_complete"
 LOG_HAR_COMPLETE = "log_har_complete"
 
-# restbed bitrate conditions
+# Testbed bitrate conditions
 TESTBED_RATES = ["1500kbits", "3000kbits", "4500kbits", "6000kbits", "7500kbits", "50000kbits"]
 
-# colors associated with testbed rates
 TESTBED_RATES_COLORS = [
-    '#8B0000',   # dark red
-    '#FF0000',   # red
-    '#FF4500',   # orange red
-    '#FF7F00',   # orange
-    '#FFFF00',   # yellow
-    '#00FF00'    # green
+    '#000000',  # Black (low quality)
+    '#6A1B9A',  # Medium purple
+    '#9C27B0',  # Vibrant purple
+    '#FF0000',  # Red
+    '#D4A200',  # Yellow
+    '#00AF00'   # Green orange (high quality)
 ]
-
-
-# colors associated to testbed
-TESTBED_RATES_COLORS = [
-   '#8B0000',   # dark Red
-    '#FF0000',  # red
-    '#FF4500',  # orange Red
-    '#FF7F00',  # orange
-    '#FFFF00',  # yellow
-    '#00FF00'   # green
-]
-
 
 def time_axis(min_value, max_value):
     values = pandas.date_range(start=min_value, end=max_value, freq="10s")
@@ -75,10 +63,7 @@ def periods(path: str):
             for i in range(0, len(frame) - 1, 2)]
 
 def format_time(tstamp: pandas.Timestamp):
-    """Convert a Timestamp to mm:ss format."""
-    # Convert Timestamp to seconds since the Unix epoch
     seconds = (tstamp - pandas.Timestamp("1970-01-01")) // pandas.Timedelta('1s')
-    # Format as mm:ss
     return f"{int(seconds // 60):02}:{int(seconds % 60):02}"
 
 
@@ -119,176 +104,197 @@ def http_info(record: pandas.Series):
     return (
         f"<b>xs</b>={format_time(record['xs'])}<br>"
         f"<b>xe</b>={format_time(record['xe'])}<br>"
-        #f"<b>URL</b>={record['url']:40}<br>"
     )
 
-def timeline(data: pandas.DataFrame, 
-             evns: pandas.DataFrame, xs: str, xe: str, y: str, color: str, xtitle: str, ytitle: str, ctitle: str):
+
+def downsample_data(x, y, max_points=100):
+    if len(x) > max_points:
+        step = len(x) // max_points
+        x = x[::step]
+        y = y[::step]
+    return x, y
+
+def plot_timeline(data: pandas.DataFrame, 
+                  evns: pandas.DataFrame, xs: str, xe: str, y: str, color: str, 
+                  xaxis_title: str, 
+                  yaxis_title: str, 
+                  chart_title: str):
 
     # Create a new figure
-    fig = px.timeline(data, x_start=xs, x_end=xe, y=y, color=color, custom_data="info")
+    figure = px.timeline(data, x_start=xs, x_end=xe, y=y, color=color, custom_data="info")
 
     # Show only custom info
-    fig.update_traces(hovertemplate="%{customdata[0]}")
+    figure.update_traces(hovertemplate="%{customdata[0]}")
 
     # Define x-axis values and labels
     values, labels = time_axis(min_value=pandas.Timestamp('1970-01-01 00:00:00'), 
                                max_value=pandas.to_datetime(max(evns, key=lambda x: x[1])[1], unit="ms", origin="unix"))
     
     # For each streaming period, use pale yellow to highligth
-    # the time period
     for evn in evns:
         x0 = pandas.to_datetime(evn[0], unit="ms", origin="unix")
         x1 = pandas.to_datetime(evn[1], unit="ms", origin="unix")
 
         # Add highligthed region for displaying the period
-        fig.add_vrect(x0=x0, x1=x1, fillcolor="rgba(255,255,0,0.1)", line_width=0)
+        figure.add_vrect(x0=x0, x1=x1, fillcolor="rgba(255,255,0,0.1)", line_width=0)
     
     # Update the chart
-    fig.update_layout(
-        xaxis=dict(
-            tickvals=values,
-            ticktext=labels,
-            tickformat="%M:%S",
-            tickfont=dict(size=12),
-            title=xtitle,
-            showgrid=True
-        ),
-        yaxis=dict(
-            tickfont=dict(size=12),
-            title=ytitle,
-            showgrid=True
-        ),
-        title=dict(
-            text=ctitle,
-            font=dict(size=13)
-        ),
-        showlegend=True
-    )
+    figure.update_layout(
+        xaxis=dict(tickvals=values, ticktext=labels, tickformat="%M:%S", tickfont=dict(size=12), title=xaxis_title, showgrid=True),
+        yaxis=dict(tickfont=dict(size=12), title=yaxis_title, showgrid=True),
+        title=dict(text=chart_title, font=dict(size=13)), showlegend=True)
 
     # Show the plot
-    streamlit.plotly_chart(fig, use_container_width=True)
+    streamlit.plotly_chart(figure, use_container_width=True)
 
+def trend_function_caption(feature: str, side: str, protocol: str, step: int):
+    return f"""
+        This chart displays the evolution of the variable {feature} over time. Each point represents 
+        a sample, with a time step of {step // 1000} seconds. Each point is the average value computed 
+        across all streaming periods conducted under the same bandwidth condition. Therefore, the figure 
+        displays the average behavior of the streaming period (independent of linear channel playback) 
+        at regular time checkpoints. The x-axis represents time, while the y-axis represents {feature}.
+        Annotations are included to indicate the average value of {feature} for each rate. 
+        These averages provide a quick summary of the central tendency of the variable over the 
+        observed time period.
+        """
+        
+def cumulative_function_caption(feature: str, side: str, protocol: str, step: int):
+    return f"""
+        This chart displays the cumulative distribution function (CDF) of the variable {feature} observed
+        in all {protocol} flows that convey HAS-related data. The greater the separation between each function,
+        the more relevant the feature is. The x-axis represents the values or units of {feature}, 
+        while the y-axis shows the cumulative probability.
+        """
 
-def plot_trend(x: str, y: str, xtitle: str, ytitle: str, ctitle: str, media: dict, noise: dict | None):
-
-    fig = go.Figure()
-
-    for i, (rate, frame) in enumerate(media.items()):
-
+def scatter_plot_caption(feature_x: str, feature_y: str, side: str, protocol: str, step: int):
+    return f"""
+        This scatter plot illustrates the relationship between the variables {feature_x} and {feature_y} 
+        observed in all {protocol} flows that convey HAS-related data. Each point represents a sample, 
+        with the x-axis showing the values or units of {feature_x} and the y-axis representing the values 
+        or units of {feature_y}. The spread and distribution of points provide insight into how these two 
+        features interact over time. Annotations may be included to highlight key trends or average values 
+        for specific groups or conditions.
+        """
+    
+def plot_cumulative_function(series: dict, x_family: str, x_feature: str,
+                             xaxis_title: str,
+                             yaxis_title: str,
+                             chart_title: str, caption: str | None):
+    
+    points = {}
+    
+    # Generate a new figure
+    figure = go.Figure()
+    
+    for i, rate in enumerate(series.keys()):
+        x = np.sort(series[rate][x_family][x_feature])
+        y = np.arange(1, len(x) + 1) / len(x)
+        
+        x, y = downsample_data(x, y)
+        
+        points[rate] = len(x)
+        
+        # Get the color
         color = TESTBED_RATES_COLORS[i]
-        # mean = frame[y].mean()
+        
+        # Adding the trace
+        figure.add_trace(go.Scatter(x=x, y=y, mode="lines+markers", name=rate,
+                                    line=dict(width=2, color=color), marker=dict(size=2, color=color)))
+        
+    # Updating the layout
+    figure.update_layout(title=chart_title, 
+                         xaxis_title=xaxis_title, 
+                         yaxis_title=yaxis_title,
+                         xaxis=dict(showgrid=True, gridcolor="lightgray", gridwidth=0.3),
+                         yaxis=dict(showgrid=True, gridcolor="lightgray", gridwidth=0.3))
+    
+    # Render the figure
+    streamlit.plotly_chart(figure_or_data=figure)
+    
+    if caption is not None:
+        streamlit.markdown(
+            f"""<div style="text-align: justify; font-size: 15px; color: gray;">{caption} </div>""", 
+            unsafe_allow_html=True)
+    
+def plot_scattering_function(series: dict, 
+                             x_family: str, x_feature: str,
+                             y_family: str, y_feature: str,
+                             xaxis_title: str,
+                             yaxis_title: str,
+                             chart_title: str, caption: str | None):
+    
+    # Generate a new figure
+    figure = go.Figure()
+    
+    for i, rate in enumerate(series.keys()):
+        x = series[rate][x_family][x_feature]
+        y = series[rate][y_family][y_feature]
+        
+        # Get the color
+        color = TESTBED_RATES_COLORS[i]
+        
+        # Adding the trace
+        figure.add_trace(go.Scatter(x=x, y=y, mode="markers", name=rate,
+                                    marker=dict(size=5, color=color, opacity=0.8)))
+        
+    # Updating the layout
+    figure.update_layout(title=chart_title, 
+                         xaxis_title=xaxis_title, 
+                         yaxis_title=yaxis_title,
+                         xaxis=dict(showgrid=True, gridcolor="lightgray", gridwidth=0.3),
+                         yaxis=dict(showgrid=True, gridcolor="lightgray", gridwidth=0.3, type="log"))
+    
+    # Render the figure
+    streamlit.plotly_chart(figure_or_data=figure)
+    
+    if caption is not None:
+        streamlit.markdown(
+            f"""<div style="text-align: justify; font-size: 15px; color: gray;">{caption} </div>""", 
+            unsafe_allow_html=True)
+
+def plot_trend_function(x_family: str, x_feature: str,
+                        y_family: str, y_feature: str,
+                        xaxis_title: str, 
+                        yaxis_title: str, 
+                        chart_title: str, series: dict, caption: str | None):
+    
+    figure = go.Figure()
+
+    for i, (rate, frame) in enumerate(series.items()):
+        
+        xvalues = frame[x_family][x_feature]
+        yvalues = frame[y_family][y_feature]
+
+        # Define the color to use
+        color = TESTBED_RATES_COLORS[i]
 
         # Add trace for the rate
-        fig.add_trace(go.Scatter(x=frame[x],
-                                 y=frame[y], 
-                                 mode="lines+markers", 
-                                 line=dict(color=color, width=1),
-                                 marker=dict(color=color, size=3), name=rate))
-
-        # # Add a horizontal dotted line at the average y value
-        # fig.add_trace(go.Scatter(x=[frame[x].min(), frame[x].max()],
-        #                          y=[mean] * 2,
-        #                          mode="lines",
-        #                          name=f"avg at {rate}",
-        #                          line=dict(color=color, width=1, dash='dot')))
-
-    # Update the chart
-    fig.update_layout(
-        xaxis=dict(
-            tickformat="%M:%S",
-            tickfont=dict(size=12),
-            title=xtitle,
-            showgrid=True
-        ),
-        yaxis=dict(
-            tickfont=dict(size=12),
-            title=ytitle,
-            showgrid=True
-        ),
-        title=dict(
-            text=ctitle,
-            font=dict(size=13)
-        ),
-        showlegend=True
-    )
-
-    streamlit.plotly_chart(fig, use_container_width=True)
-
-def plot_scatter(x: str, y: str, xtitle: str, ytitle: str, ctitle: str, media: dict, noise: dict | None):
-
-    fig = go.Figure()
-
-    for i, (rate, frame) in enumerate(media.items()):
-
-        color = TESTBED_RATES_COLORS[i]
-
-        # Add trace for the rate
-        fig.add_trace(go.Scatter(x=frame[x],
-                                 y=frame[y], 
-                                 mode="markers", 
-                                 line=dict(color=color, width=1),
-                                 marker=dict(color=color, size=3), name=rate))
-    # Update the chart
-    fig.update_layout(
-        xaxis=dict(
-            tickformat="%M:%S",
-            tickfont=dict(size=12),
-            title=xtitle,
-            showgrid=True
-        ),
-        yaxis=dict(
-            tickfont=dict(size=12),
-            title=ytitle,
-            showgrid=True
-        ),
-        title=dict(
-            text=ctitle,
-            font=dict(size=13)
-        ),
-        showlegend=True
-    )
-
-    streamlit.plotly_chart(fig, use_container_width=True)
-
-def cumulative_function(x: str, xtitle: str,  ytitle: str, ctitle: str, media: dict, noise: dict | None):
-
-    fig = go.Figure()
-
-    for i, (rate, frame) in enumerate(media.items()):
-
-        # extract x data
-        x_values = frame[x]
-        x_vals   = numpy.sort(x_values)
-        y_vals   = numpy.arange(1, len(x_vals) + 1) / len(x_vals)
-
-        color = TESTBED_RATES_COLORS[i]
-
-        # add the CDF as a trace to the plot
-        fig.add_trace(go.Scatter(x=x_vals, 
-                                 y=y_vals,
-                                 mode="lines+markers", 
-                                 line=dict(color=color, width=1),
-                                 marker=dict(color=color, size=3), name=rate))
-
-    # Update the chart
-    fig.update_layout(
-        xaxis=dict(
-            tickformat="%M:%S",
-            tickfont=dict(size=12),
-            title=xtitle,
-            showgrid=True
-        ),
-        yaxis=dict(
-            tickfont=dict(size=12),
-            title=ytitle,
-            showgrid=True
-        ),
-        title=dict(
-            text=ctitle,
-            font=dict(size=13)
-        ),
-        showlegend=True
-    )
-
-    streamlit.plotly_chart(fig, use_container_width=True)
+        figure.add_trace(go.Scatter(x=xvalues,
+                                    y=yvalues, 
+                                    mode="lines+markers", 
+                                    line=dict(color=color, width=1),
+                                    marker=dict(color=color, size=3), name=rate))
+        
+        # Compute the average y-value
+        avg_y = np.mean(yvalues)
+        
+        # Add an annotation for the average y-value
+        figure.add_annotation(
+            x=xvalues.iloc[-1], y=avg_y, text=f"Avg: {format_volume(avg_y)}",
+            showarrow=False, font=dict(size=8, color=color, family="Courier"), bgcolor="white", opacity=1.0)
+        
+    # Updating the layout
+    figure.update_layout(title=chart_title, 
+                         xaxis_title=xaxis_title, 
+                         yaxis_title=yaxis_title,
+                         xaxis=dict(showgrid=True, gridcolor="lightgray", gridwidth=0.3),
+                         yaxis=dict(showgrid=True, gridcolor="lightgray", gridwidth=0.3))
+    
+    # Render the figure
+    streamlit.plotly_chart(figure_or_data=figure)
+    
+    if caption is not None:
+        streamlit.markdown(
+            f"""<div style="text-align: justify; font-size: 15px; color: gray;">{caption} </div>""", 
+            unsafe_allow_html=True)
