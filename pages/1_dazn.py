@@ -10,24 +10,21 @@ SERVER = "dazn"
 def main():
 
         
-    INTRO = "Introduction"
-    FLOWS = "Supervised Experiments"
-    PROFS = "Server Profiling"
-    SAMPL = "HAS Flows Metrics"
+    FLOWS = "Active Experiments"
+    PROFS = "DAZN Server Profiling"
+    SAMPL = "DAZN Primary Flows Metrics"
 
     # config page
     streamlit.set_page_config(layout="wide")
 
     with streamlit.sidebar:
         page = streamlit.radio("Select page to be displayed", 
-                               options=[INTRO, FLOWS, PROFS, SAMPL])
+                               options=[FLOWS, PROFS, SAMPL])
         
-    if page == INTRO:
-        pass
     if page == FLOWS:
         page_1.main()
     if page == PROFS:
-        pass
+        page_2.main()
     if page == SAMPL:
         page_3.main()
 

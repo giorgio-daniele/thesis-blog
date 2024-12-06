@@ -1,10 +1,13 @@
 import enum
 import pandas
 import streamlit
-import numpy as np
+import numpy
 import plotly.express as px
 import plotly.graph_objects as go
-import numpy
+
+import random
+import string
+import kaleido
 
 
 TEMPLATE = None
@@ -46,6 +49,9 @@ TESTBED_RATES_COLORS = [
     '#00AF00'   # Green orange (high quality)
 ]
 
+def generate_random_filename(extension="svg", length=8):
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length)) + f".{extension}"
+
 def time_axis(min_value, max_value):
     values = pandas.date_range(start=min_value, end=max_value, freq="10s")
     labels = [v.strftime("%M:%S") for v in values]
@@ -76,15 +82,13 @@ def format_volume(volume: int):
 
 def tcp_info(record: pandas.Series):
     return (
-        f"<b>xs</b>={format_time(record['xs'])}<br>"
-        f"<b>xe</b>={format_time(record['xe'])}<br>"
-        f"<b>CNAME</b>={record['cn']}<br>"
-        f"<b>Client IP</b>={record['c_ip']}<br>"
-        f"<b>Server IP</b>={record['s_ip']}<br>"
-        f"<b>Client Port</b>={record['c_port']}<br>"
-        f"<b>Server Port</b>={record['s_port']}<br>"
-        f"<b>Client Bytes</b>={format_volume(record['c_bytes_all'])}<br>"
-        f"<b>Server Bytes</b>={format_volume(record['s_bytes_all'])}<br>"
+        f"<b>CNAME</b>: {record['cn']}<br>"
+        f"<b>ts</b>:  {format_time(record['xs'])}<br>"
+        f"<b>te</b>: {format_time(record['xe'])}<br><br>"
+        f"<b>Client Socket</b>: {record['c_ip']}:{record['c_port']}<br>"
+        f"<b>Server Socket</b>: {record['s_ip']}:{record['s_port']}<br>"
+        f"<b>Client Data</b>:  {format_volume(record['c_bytes_all'])}<br>"
+        f"<b>Server Data</b>:  {format_volume(record['s_bytes_all'])}<br>"
     )
 
 def udp_info(record: pandas.Series):
@@ -101,10 +105,18 @@ def udp_info(record: pandas.Series):
     )
 
 def http_info(record: pandas.Series):
-    return (
-        f"<b>xs</b>={format_time(record['xs'])}<br>"
-        f"<b>xe</b>={format_time(record['xe'])}<br>"
-    )
+    if record["mime"] == "video":
+        return (
+            f"<b>xs</b>: {format_time(record['xs'])}<br>"
+            f"<b>xe</b>: {format_time(record['xe'])}<br>"
+            f"<b>Video quality</b>: {(record['video_rate'])} kbps<br>"
+        )
+    if record["mime"] == "audio":
+        return (
+            f"<b>xs</b>: {format_time(record['xs'])}<br>"
+            f"<b>xe</b>: {format_time(record['xe'])}<br>"
+            f"<b>Audio quality</b>: {(record['audio_rate'])} kbps<br>"
+        )
 
 
 def downsample_data(x, y, max_points=100):
@@ -147,35 +159,6 @@ def plot_timeline(data: pandas.DataFrame,
     # Show the plot
     streamlit.plotly_chart(figure, use_container_width=True)
 
-def trend_function_caption(feature: str, side: str, protocol: str, step: int):
-    return f"""
-        This chart displays the evolution of the variable {feature} over time. Each point represents 
-        a sample, with a time step of {step // 1000} seconds. Each point is the average value computed 
-        across all streaming periods conducted under the same bandwidth condition. Therefore, the figure 
-        displays the average behavior of the streaming period (independent of linear channel playback) 
-        at regular time checkpoints. The x-axis represents time, while the y-axis represents {feature}.
-        Annotations are included to indicate the average value of {feature} for each rate. 
-        These averages provide a quick summary of the central tendency of the variable over the 
-        observed time period.
-        """
-        
-def cumulative_function_caption(feature: str, side: str, protocol: str, step: int):
-    return f"""
-        This chart displays the cumulative distribution function (CDF) of the variable {feature} observed
-        in all {protocol} flows that convey HAS-related data. The greater the separation between each function,
-        the more relevant the feature is. The x-axis represents the values or units of {feature}, 
-        while the y-axis shows the cumulative probability.
-        """
-
-def scatter_plot_caption(feature_x: str, feature_y: str, side: str, protocol: str, step: int):
-    return f"""
-        This scatter plot illustrates the relationship between the variables {feature_x} and {feature_y} 
-        observed in all {protocol} flows that convey HAS-related data. Each point represents a sample, 
-        with the x-axis showing the values or units of {feature_x} and the y-axis representing the values 
-        or units of {feature_y}. The spread and distribution of points provide insight into how these two 
-        features interact over time. Annotations may be included to highlight key trends or average values 
-        for specific groups or conditions.
-        """
     
 def plot_cumulative_function(series: dict, x_family: str, x_feature: str,
                              xaxis_title: str,
@@ -188,8 +171,8 @@ def plot_cumulative_function(series: dict, x_family: str, x_feature: str,
     figure = go.Figure()
     
     for i, rate in enumerate(series.keys()):
-        x = np.sort(series[rate][x_family][x_feature])
-        y = np.arange(1, len(x) + 1) / len(x)
+        x = numpy.sort(series[rate][x_family][x_feature])
+        y = numpy.arange(1, len(x) + 1) / len(x)
         
         x, y = downsample_data(x, y)
         
@@ -277,7 +260,7 @@ def plot_trend_function(x_family: str, x_feature: str,
                                     marker=dict(color=color, size=3), name=rate))
         
         # Compute the average y-value
-        avg_y = np.mean(yvalues)
+        avg_y = numpy.mean(yvalues)
         
         # Add an annotation for the average y-value
         figure.add_annotation(

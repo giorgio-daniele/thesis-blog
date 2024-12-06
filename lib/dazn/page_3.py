@@ -1,6 +1,6 @@
 import os
-import pandas    as pd
-import streamlit as st
+import pandas
+import streamlit
 
 from lib.generic import LIMIT
 from lib.generic import TESTBED_RATES
@@ -9,14 +9,40 @@ from lib.generic import plot_cumulative_function
 from lib.generic import plot_scattering_function
 from lib.generic import plot_trend_function
 
-from lib.generic import trend_function_caption
-from lib.generic import cumulative_function_caption
-from lib.generic import scatter_plot_caption
 
+def trend_function_caption(feature: str, side: str, protocol: str, step: int):
+    return f"""
+        This chart displays the evolution of the variable <code>{feature}</code> over time. Each point represents 
+        a sample, with a time step of {step // 1000} seconds. Each point is the average value computed 
+        across all streaming periods conducted under the same bandwidth condition. Therefore, the figure 
+        displays the average behavior of the streaming period (independent of linear channel playback) 
+        at regular time checkpoints. The x-axis represents time, while the y-axis represents <code>{feature}</code>.
+        Annotations are included to indicate the average value of <code>{feature}</code> for each rate. 
+        These averages provide a quick summary of the central tendency of the variable over the 
+        observed time period.
+        """
+        
+def cumulative_function_caption(feature: str, side: str, protocol: str, step: int):
+    return f"""
+        This chart displays the cumulative distribution function (CDF) of the variable <code>{feature}</code> observed
+        in all {protocol} flows that convey HAS-related data. The greater the separation between each function,
+        the more relevant the feature is. The x-axis represents the values or units of <code>{feature}</code>, 
+        while the y-axis shows the cumulative probability.
+        """
+
+def scatter_plot_caption(feature_x: str, feature_y: str, side: str, protocol: str, step: int):
+    return f"""
+        This scatter plot illustrates the relationship between the variables <code>{feature_x}</code> and <code>{feature_y}</code> 
+        observed in all {protocol} flows that convey HAS-related data. Each point represents a sample, 
+        with the x-axis showing the values or units of <code>{feature_x}</code> and the y-axis representing the values 
+        or units of <code>{feature_y}</code>. The spread and distribution of points provide insight into how these two 
+        features interact over time. Annotations may be included to highlight key trends or average values 
+        for specific groups or conditions.
+        """
 
 SERVER = "dazn"
 
-@st.cache_data(show_spinner=True, ttl=10_000)
+@streamlit.cache_data(show_spinner=True, ttl=10_000)
 def load_tcp(step: str):
     samples = {}
 
@@ -28,8 +54,8 @@ def load_tcp(step: str):
         samples[rate] = {"temporal": {}, "volumetric": {}, "groundtruth": {}}
 
         # Generate a unique dataframe with all periods conducted
-        frame = pd.concat(
-            [pd.read_csv(os.path.join(dir, file), sep=" ") 
+        frame = pandas.concat(
+            [pandas.read_csv(os.path.join(dir, file), sep=" ") 
                 for file in os.listdir(dir)][:LIMIT], ignore_index=True)
 
         # Convert timestamps from millisecond to seconds
@@ -62,14 +88,14 @@ def load_tcp(step: str):
         data = frame.groupby(["ts", "te"], as_index=False).agg(**statistics)
 
         # Convert timestamps to datetime
-        data["xs"] = pd.to_datetime(data["ts"], origin="unix", unit='s')
-        data["xe"] = pd.to_datetime(data["te"], origin="unix", unit='s')
+        data["xs"] = pandas.to_datetime(data["ts"], origin="unix", unit='s')
+        data["xe"] = pandas.to_datetime(data["te"], origin="unix", unit='s')
 
         samples[rate]["statistics"] = data
 
     return samples
 
-@st.cache_data(show_spinner=True, ttl=10_000)
+@streamlit.cache_data(show_spinner=True, ttl=10_000)
 def load_udp(step: str):
     samples = {}
 
@@ -81,8 +107,8 @@ def load_udp(step: str):
         samples[rate] = {"temporal": {}, "volumetric": {}, "groundtruth": {}}
 
         # Generate a unique dataframe with all periods conducted
-        frame = pd.concat(
-            [pd.read_csv(os.path.join(dir, file), sep=" ") 
+        frame = pandas.concat(
+            [pandas.read_csv(os.path.join(dir, file), sep=" ") 
                 for file in os.listdir(dir)][:LIMIT], ignore_index=True)
 
         # Convert timestamps from millisecond to seconds
@@ -111,8 +137,8 @@ def load_udp(step: str):
         data = frame.groupby(["ts", "te"], as_index=False).agg(**statistics)
 
         # Convert timestamps to datetime
-        data["xs"] = pd.to_datetime(data["ts"], origin="unix", unit='s')
-        data["xe"] = pd.to_datetime(data["te"], origin="unix", unit='s')
+        data["xs"] = pandas.to_datetime(data["ts"], origin="unix", unit='s')
+        data["xe"] = pandas.to_datetime(data["te"], origin="unix", unit='s')
 
         samples[rate]["statistics"] = data
 
@@ -121,10 +147,10 @@ def load_udp(step: str):
         
 def main():
     
-    st.title("HAS (DASH) flows metrics")
+    streamlit.title("DAZN Primary Flow Metrics")
 
     # Define the step at which data are visualized
-    step = st.select_slider("Select step value", 
+    step = streamlit.select_slider("Select step value", 
                             options=[i * 1000 for i in range(1, 11)], value=10_000, 
                             format_func=lambda x: f"{x / 1000} seconds")
     """
@@ -133,12 +159,12 @@ def main():
     =============================
     """
 
-    st.markdown("### TCP")
+    streamlit.markdown("### TCP")
     protocol = "TCP"
     samples  = load_tcp(step=step)
     
-    st.caption("#### Temporal metrics")
-    col1, col2 = st.columns(2)
+    streamlit.caption("#### Temporal metrics")
+    col1, col2 = streamlit.columns(2)
     with col1:
         side        = "server-to-client, and viceversa"
         x_family    = "temporal"
@@ -165,8 +191,8 @@ def main():
                                  yaxis_title=yaxis_title,
                                  chart_title=chart_title, caption=description)
 
-    st.caption("#### Volumetric metrics")
-    col1, col2 = st.columns(2)
+    streamlit.caption("#### Volumetric metrics")
+    col1, col2 = streamlit.columns(2)
     with col1:
         side        = "server-to-client"
         feature     = "idle"
@@ -225,8 +251,8 @@ def main():
                             yaxis_title=yaxis_title,
                             chart_title=chart_title, series=samples, caption=description)
         
-    st.caption("#### Groundtruth metrics")
-    col1, col2 = st.columns(2)
+    streamlit.caption("#### Groundtruth metrics")
+    col1, col2 = streamlit.columns(2)
     with col1:
         side        = "server-to-client"
         x_family    = "volumetric"
@@ -264,12 +290,12 @@ def main():
     =============================
     """
 
-    st.markdown("### UDP")
+    streamlit.markdown("### UDP")
     protocol = "UDP"
     samples  = load_udp(step=step)
     
-    st.caption("#### Temporal metrics")
-    col1, col2 = st.columns(2)
+    streamlit.caption("#### Temporal metrics")
+    col1, col2 = streamlit.columns(2)
     with col1:
         side        = "server-to-client, and viceversa"
         x_family    = "temporal"
@@ -296,8 +322,8 @@ def main():
                                  yaxis_title=yaxis_title,
                                  chart_title=chart_title, caption=description)
 
-    st.caption("#### Volumetric metrics")
-    col1, col2 = st.columns(2)
+    streamlit.caption("#### Volumetric metrics")
+    col1, col2 = streamlit.columns(2)
     with col1:
         side        = "server-to-client"
         feature     = "idle"
@@ -356,8 +382,8 @@ def main():
                             yaxis_title=yaxis_title,
                             chart_title=chart_title, series=samples, caption=description)
         
-    st.caption("#### Groundtruth metrics")
-    col1, col2 = st.columns(2)
+    streamlit.caption("#### Groundtruth metrics")
+    col1, col2 = streamlit.columns(2)
     with col1:
         side        = "server-to-client"
         x_family    = "volumetric"
