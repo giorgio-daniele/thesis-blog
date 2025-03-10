@@ -1,4 +1,4 @@
-ts te idle avg_span std_span max_span min_span c_bytes_all c_ack_cnt c_ack_cnt_p c_pkts_all c_pkts_data s_bytes_all s_ack_cnt s_ack_cnt_p s_pkts_all s_pkts_data video_rate
+ts te idle avg_span std_span max_span min_span c_bytes_all c_ack_cnt c_ack_cnt_p c_pkts_all c_pkts_data s_bytes_all s_ack_cnt s_ack_cnt_p s_pkts_all s_pkts_data videorate
 0.0 10000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 10000.0 20000.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 20000.0 30000.0 3728.2767324218803 557.2025056423614 382.6881841870521 997.4060000000027 0.0 14108.0 92.5751228687649 77.5751228687649 98.5751228687649 15.0 183949.34403254173 152.1502457375298 19.0 152.1502457375298 127.15024573752979 288.0
