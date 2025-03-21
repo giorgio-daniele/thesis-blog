@@ -3,31 +3,21 @@ import streamlit
 
 from lib.dazn import page_1
 from lib.dazn import page_2
-from lib.dazn import page_3
-
-SERVER = "dazn"
 
 def main():
 
-        
-    FLOWS = "Active Experiments"
-    PROFS = "DAZN Server Profiling"
-    SAMPL = "DAZN Primary Flows Metrics"
-
-    # config page
-    streamlit.set_page_config(layout="wide")
+    opt_1 = "Supervised Experiment"
+    opt_2 = "Live Streaming Flows Features"
 
     with streamlit.sidebar:
         page = streamlit.radio("Select page to be displayed", 
-                               options=[FLOWS, PROFS, SAMPL])
+                               options=[opt_1, opt_2])
         
-    if page == FLOWS:
+    if page == opt_1:
         page_1.main()
-    if page == PROFS:
-        page_2.main()
-    if page == SAMPL:
-        page_3.main()
 
+    if page == opt_2:
+        page_2.main()
 main()
 
 
